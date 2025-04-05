@@ -42,7 +42,7 @@ A aplicação foi construída utilizando **Tkinter** para a interface gráfica e
 3. Instale as dependências:
 
    ```bash
-   pip install pandas faker
+   pip install pandas faker tkinter
 
 4. Execute o programa:
 
