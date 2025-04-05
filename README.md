@@ -32,3 +32,25 @@ A aplicação foi construída utilizando **Tkinter** para a interface gráfica e
 1. Clone o repositório:
    ```bash
    git clone https://github.com/seu-usuario/dataguard.git
+
+2. Acesse a pasta do projeto:
+
+   ```bash
+   cd dataguard
+
+
+3. Instale as dependências:
+
+   ```bash
+   pip install pandas faker
+
+4. Execute o programa:
+
+   ```bash
+   python dataguard.py
+
+5. Clique no botão "Carregar Arquivo" para selecionar um arquivo CSV.
+
+6. Visualize a comparação entre os dados originais e anonimizados.
+
+7. Salve o novo arquivo se desejar.
