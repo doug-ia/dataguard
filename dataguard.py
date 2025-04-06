@@ -102,7 +102,6 @@ def carregar_arquivo():
         
         btn_salvar.config(state='normal')
 
-
     except Exception as e:
         messagebox.showerror("Erro", str(e))
 
