@@ -1,4 +1,4 @@
-# DataGuard - Ferramenta de Anonimização de Dados Sensíveis
+# DataGuard - Ferramenta de Anonimização de Dados Sensíveis (layout melhorado e centralizado)
 import pandas as pd
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -6,6 +6,7 @@ from faker import Faker
 
 fake = Faker()
 
+# Funções principais
 def detectar_colunas_sensiveis(df):
     colunas_sensiveis = []
     palavras_chave = ['nome', 'cpf', 'email', 'telefone', 'endereco', 'data_nascimento']
@@ -19,99 +20,98 @@ def anonimizar_dados(df, colunas):
     for coluna in colunas:
         if 'nome' in coluna.lower():
             df[coluna] = ['anonimo' for _ in range(len(df))]
-        elif 'cpf' in coluna.lower():
-            df[coluna] = ['***' for _ in range(len(df))]
-        elif 'email' in coluna.lower():
-            df[coluna] = ['***' for _ in range(len(df))]
-        elif 'telefone' in coluna.lower():
-            df[coluna] = ['***' for _ in range(len(df))]
-        elif 'endereco' in coluna.lower():
-            df[coluna] = ['***' for _ in range(len(df))]
-        elif 'data_nascimento' in coluna.lower():
+        elif any(chave in coluna.lower() for chave in ['cpf', 'email', 'telefone', 'endereco', 'data_nascimento']):
             df[coluna] = ['***' for _ in range(len(df))]
         else:
             df[coluna] = '***'
     return df
 
+def mostrar_dataframes(df_original, df_anonimizado):
+    for widget in frame_dados.winfo_children():
+        widget.destroy()
+
+    style = ttk.Style()
+    style.configure("Treeview", font=("Arial", 10))
+
+    # Treeview Original
+    tree_original = ttk.Treeview(frame_dados)
+    tree_original['columns'] = list(df_original.columns)
+    tree_original.heading('#0', text='Linha')
+
+    for col in df_original.columns:
+        tree_original.heading(col, text=col)
+        tree_original.column(col, width=100)
+
+    for idx, row in df_original.iterrows():
+        tree_original.insert('', 'end', text=idx, values=list(row))
+
+    scrollbar_y = ttk.Scrollbar(frame_dados, orient='vertical', command=tree_original.yview)
+    tree_original.configure(yscrollcommand=scrollbar_y.set)
+
+    # Treeview Anonimizado
+    tree_anon = ttk.Treeview(frame_dados)
+    tree_anon['columns'] = list(df_anonimizado.columns)
+    tree_anon.heading('#0', text='Linha')
+
+    for col in df_anonimizado.columns:
+        tree_anon.heading(col, text=col)
+        tree_anon.column(col, width=100)
+
+    for idx, row in df_anonimizado.iterrows():
+        tree_anon.insert('', 'end', text=idx, values=list(row))
+
+    scrollbar_y2 = ttk.Scrollbar(frame_dados, orient='vertical', command=tree_anon.yview)
+    tree_anon.configure(yscrollcommand=scrollbar_y2.set)
+
+    # Layout das tabelas
+    lbl1 = tk.Label(frame_dados, text="Original", font=('Arial', 12, 'bold'))
+    lbl1.grid(row=0, column=0)
+    tree_original.grid(row=1, column=0, sticky='nsew')
+    scrollbar_y.grid(row=1, column=1, sticky='ns')
+
+    lbl2 = tk.Label(frame_dados, text="Anonimizado", font=('Arial', 12, 'bold'))
+    lbl2.grid(row=0, column=2)
+    tree_anon.grid(row=1, column=2, sticky='nsew')
+    scrollbar_y2.grid(row=1, column=3, sticky='ns')
+
+    frame_dados.grid_columnconfigure(0, weight=1)
+    frame_dados.grid_columnconfigure(2, weight=1)
+    frame_dados.grid_rowconfigure(1, weight=1)
+
 def carregar_arquivo():
+    global df_original, df_anonimizado
+
     file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     if not file_path:
         return
 
     try:
-        df = pd.read_csv(file_path, sep=';', encoding='utf-8')
-        df.columns = df.columns.str.strip()
+        df_original = pd.read_csv(file_path, sep=';', encoding='utf-8')
+        df_original.columns = df_original.columns.str.strip()
 
-        colunas = detectar_colunas_sensiveis(df)
-
+        colunas = detectar_colunas_sensiveis(df_original)
         if not colunas:
             messagebox.showinfo("DataGuard", "Nenhuma coluna sensível detectada.")
             return
 
-        df_anonimizado = anonimizar_dados(df.copy(), colunas)
+        df_anonimizado = anonimizar_dados(df_original.copy(), colunas)
+        mostrar_dataframes(df_original, df_anonimizado)
 
-        mostrar_resultados(df, df_anonimizado)
+        porcentagem = (len(colunas) / len(df_original.columns)) * 100
+        label_status.config(text=f"{len(colunas)} de {len(df_original.columns)} colunas anonimizadas ({porcentagem:.2f}%)")
+        
 
     except Exception as e:
         messagebox.showerror("Erro", str(e))
 
-def salvar_arquivo(df):
+def salvar_arquivo():
     save_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
     if save_path:
-        df.to_csv(save_path, index=False, sep=';')
+        df_anonimizado.to_csv(save_path, index=False, sep=';')
         messagebox.showinfo("DataGuard", "Arquivo anonimizado salvo com sucesso!")
 
-def mostrar_resultados(original, anonimizado):
-    resultado = tk.Toplevel()
-    resultado.title("Resultados da Anonimização")
-    resultado.geometry("1000x600")
 
-    frame_top = tk.Frame(resultado, pady=10)
-    frame_top.pack()
-
-    botao_salvar = tk.Button(frame_top, text="Salvar Arquivo Anonimizado", command=lambda: salvar_arquivo(anonimizado))
-    botao_salvar.pack()
-
-    label_percentual = tk.Label(frame_top)
-    label_percentual.pack()
-
-    frame_tables = tk.Frame(resultado)
-    frame_tables.pack(expand=True, fill='both')
-
-    frame_original = tk.Frame(frame_tables, padx=10)
-    frame_original.pack(side='left', expand=True, fill='both')
-    frame_anonimizado = tk.Frame(frame_tables, padx=10)
-    frame_anonimizado.pack(side='left', expand=True, fill='both')
-
-    label1 = tk.Label(frame_original, text="Original")
-    label1.pack()
-    tree_original = ttk.Treeview(frame_original)
-    tree_original.pack(expand=True, fill='both')
-
-    tree_original['columns'] = list(original.columns)
-    for coluna in original.columns:
-        tree_original.heading(coluna, text=coluna)
-        tree_original.column(coluna, anchor='center')
-
-    for _, row in original.iterrows():
-        tree_original.insert("", "end", values=list(row))
-
-    label2 = tk.Label(frame_anonimizado, text="Anonimizado")
-    label2.pack()
-    tree_anonimizado = ttk.Treeview(frame_anonimizado)
-    tree_anonimizado.pack(expand=True, fill='both')
-
-    tree_anonimizado['columns'] = list(anonimizado.columns)
-    for coluna in anonimizado.columns:
-        tree_anonimizado.heading(coluna, text=coluna)
-        tree_anonimizado.column(coluna, anchor='center')
-
-    for _, row in anonimizado.iterrows():
-        tree_anonimizado.insert("", "end", values=list(row))
-
-    percentual = (len(anonimizado.columns) / len(original.columns)) * 100
-    label_percentual.config(text=f"{percentual:.2f}% das colunas foram anonimizadas.")
-
+# --- Interface Gráfica ---
 app = tk.Tk()
 app.title("DataGuard - Anonimizador de Dados")
 app.geometry("400x250")
@@ -132,4 +132,14 @@ instrucao.pack(pady=8)
 botao_carregar = tk.Button(frame, text="Carregar Arquivo", command=carregar_arquivo, bg='#4CAF50', fg='white', padx=10, pady=5)
 botao_carregar.pack(pady=20)
 
+btn_salvar = tk.Button(frame, text="Salvar Anonimizado", command=salvar_arquivo, bg='#2196F3', fg='white', padx=10, pady=5, state='disabled')
+btn_salvar.pack(pady=5)
+
+label_status = tk.Label(app, text="", bg='#4776a1', fg='white')
+label_status.pack(pady=5)
+
+frame_dados = tk.Frame(app, bg='#4776a1')
+frame_dados.pack(fill='both', expand=True)
+
+# Rodar o app
 app.mainloop()
